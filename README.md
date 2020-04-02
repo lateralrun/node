@@ -1,5 +1,7 @@
 # Lateral.run × Node.js
 
+[![npm](https://img.shields.io/npm/v/lateralrun)](https://www.npmjs.com/package/lateralrun)
+
 Run your customer's code from your Node.js app.
 
 Not familiar with Lateral.run? [Check it out](https://www.lateral.run/) and sign
