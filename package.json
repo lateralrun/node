@@ -27,6 +27,6 @@
     "release-it": "^13.5.8"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=10"
   }
 }
