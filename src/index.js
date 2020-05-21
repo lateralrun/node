@@ -25,11 +25,10 @@ class Lateral {
     return options
   }
 
-  buildURL(event, options) {
+  buildURL(event) {
     const baseURL = this.config.get('url')
-    const async = options.async
 
-    return `${baseURL}/api/cloud_functions/by_event/${event}/run?async=${async}`
+    return `${baseURL}/api/cloud_functions/by_event/${event}/run`
   }
 
   signJWT(account, expiresIn) {
@@ -90,13 +89,16 @@ class Lateral {
     const options = this.buildOptions(opts)
     const token = this.signJWT(account, options.tokenExpiresIn)
 
-    const response = await fetch(this.buildURL(event, options), {
+    const response = await fetch(this.buildURL(event), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: data && JSON.stringify(data),
+      body: JSON.stringify({
+        async: options.async,
+        data,
+      }),
     })
 
     return this.parseResponse(response, options)
