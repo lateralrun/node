@@ -11,27 +11,11 @@ class Lateral {
     this.config = new Config(config)
   }
 
-  buildOptions(opts) {
-    const options = {
-      async: true,
-      tokenExpiresIn: this.config.get('tokenExpiresIn'),
-      ...opts,
-    }
-
-    if (options.returnOperation === undefined) {
-      options.returnOperation = options.async
-    }
-
-    return options
+  buildURL(path) {
+    return `${this.config.get('url')}${path}`
   }
 
-  buildURL(event) {
-    const baseURL = this.config.get('url')
-
-    return `${baseURL}/api/cloud_functions/by_event/${event}/run`
-  }
-
-  signJWT(account, expiresIn) {
+  signJWT({ account = undefined, expiresIn }) {
     return jwt.sign(
       {
         iss: this.config.get('appID'),
@@ -59,7 +43,21 @@ class Lateral {
     throw new ServiceError(error)
   }
 
-  async parseResponse(response, options) {
+  buildRunOptions(opts) {
+    const options = {
+      async: true,
+      tokenExpiresIn: this.config.get('tokenExpiresIn'),
+      ...opts,
+    }
+
+    if (options.returnOperation === undefined) {
+      options.returnOperation = options.async
+    }
+
+    return options
+  }
+
+  async parseRunResponse(response, options) {
     if (!response.ok) {
       if (response.status === 404 || response.status === 409) {
         return undefined
@@ -86,22 +84,25 @@ class Lateral {
   }
 
   async run({ account, event, data, ...opts }) {
-    const options = this.buildOptions(opts)
-    const token = this.signJWT(account, options.tokenExpiresIn)
+    const options = this.buildRunOptions(opts)
+    const token = this.signJWT({ account, expiresIn: options.tokenExpiresIn })
 
-    const response = await fetch(this.buildURL(event), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        async: options.async,
-        data,
-      }),
-    })
+    const response = await fetch(
+      this.buildURL(`/api/cloud_functions/by_event/${event}/run`),
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          async: options.async,
+          data,
+        }),
+      }
+    )
 
-    return this.parseResponse(response, options)
+    return this.parseRunResponse(response, options)
   }
 
   runAsync(args) {
@@ -113,10 +114,33 @@ class Lateral {
   }
 
   generateEditorURL({ account, tokenExpiresIn = '24h' }) {
-    const baseURL = this.config.get('url')
-    const token = this.signJWT(account, tokenExpiresIn)
+    const token = this.signJWT({ account, expiresIn: tokenExpiresIn })
 
-    return `${baseURL}/editor?token=${token}`
+    return this.buildURL(`/editor?token=${token}`)
+  }
+
+  async deleteAccount({
+    account,
+    tokenExpiresIn = this.config.get('tokenExpiresIn'),
+  }) {
+    const token = this.signJWT({ expiresIn: tokenExpiresIn })
+
+    const response = await fetch(
+      this.buildURL(`/api/accounts/${encodeURIComponent(account)}`),
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      await this.throwServiceError(response)
+    }
+
+    return response.json()
   }
 }
 

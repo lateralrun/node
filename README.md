@@ -128,6 +128,15 @@ consume.
 By default, the URL is valid for 24 hours. This can be changed by passing in a
 `tokenExpiresIn` value that [ms](https://github.com/zeit/ms) supports.
 
+### Delete an Account
+
+When an account (your customer) is deleted from your app, you can instruct us to
+delete the account and all associated code/data from Lateral.run as well:
+
+```js
+await lateral.deleteAccount({ account: 12345 })
+```
+
 ### Errors
 
 There are two types of errors that can be thrown:
